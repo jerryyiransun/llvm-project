@@ -145,7 +145,7 @@ public:
       : TGT(R), Records(R), SchedModels(TGT.getSchedModels()),
         Target(TGT.getName()) {}
 
-  void run(raw_ostream &o);
+  void run(raw_ostream &OS);
 };
 
 } // end anonymous namespace

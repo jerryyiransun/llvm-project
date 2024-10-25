@@ -52,7 +52,7 @@ class CodeEmitterGen {
 public:
   CodeEmitterGen(const RecordKeeper &R) : Records(R) {}
 
-  void run(raw_ostream &o);
+  void run(raw_ostream &OS);
 
 private:
   int getVariableBit(const std::string &VarName, const BitsInit *BI, int bit);
@@ -69,10 +69,10 @@ private:
                                const CodeGenTarget &Target);
 
   void emitInstructionBaseValues(
-      raw_ostream &o, ArrayRef<const CodeGenInstruction *> NumberedInstructions,
+      raw_ostream &OS, ArrayRef<const CodeGenInstruction *> NumberedInstructions,
       const CodeGenTarget &Target, unsigned HwMode = DefaultMode);
   void
-  emitCaseMap(raw_ostream &o,
+  emitCaseMap(raw_ostream &OS,
               const std::map<std::string, std::vector<std::string>> &CaseMap);
   unsigned BitWidth = 0u;
   bool UseAPInt = false;
@@ -397,13 +397,13 @@ static void emitInstBits(raw_ostream &OS, const APInt &Bits) {
 }
 
 void CodeEmitterGen::emitInstructionBaseValues(
-    raw_ostream &o, ArrayRef<const CodeGenInstruction *> NumberedInstructions,
+    raw_ostream &OS, ArrayRef<const CodeGenInstruction *> NumberedInstructions,
     const CodeGenTarget &Target, unsigned HwMode) {
   const CodeGenHwModes &HWM = Target.getHwModes();
   if (HwMode == DefaultMode)
-    o << "  static const uint64_t InstBits[] = {\n";
+    OS << "  static const uint64_t InstBits[] = {\n";
   else
-    o << "  static const uint64_t InstBits_"
+    OS << "  static const uint64_t InstBits_"
       << HWM.getModeName(HwMode, /*IncludeDefault=*/true) << "[] = {\n";
 
   for (const CodeGenInstruction *CGI : NumberedInstructions) {
@@ -411,9 +411,9 @@ void CodeEmitterGen::emitInstructionBaseValues(
 
     if (R->getValueAsString("Namespace") == "TargetOpcode" ||
         R->getValueAsBit("isPseudo")) {
-      o << "    ";
-      emitInstBits(o, APInt(BitWidth, 0));
-      o << ",\n";
+      OS << "    ";
+      emitInstBits(OS, APInt(BitWidth, 0));
+      OS << ",\n";
       continue;
     }
 
@@ -427,9 +427,9 @@ void CodeEmitterGen::emitInstructionBaseValues(
           // If the HwMode does not match, then Encoding '0'
           // should be generated.
           APInt Value(BitWidth, 0);
-          o << "    ";
-          emitInstBits(o, Value);
-          o << "," << '\t' << "// " << R->getName() << "\n";
+          OS << "    ";
+          emitInstBits(OS, Value);
+          OS << "," << '\t' << "// " << R->getName() << "\n";
           continue;
         }
       }
@@ -442,33 +442,33 @@ void CodeEmitterGen::emitInstructionBaseValues(
       if (const auto *B = dyn_cast<BitInit>(BI->getBit(i)); B && B->getValue())
         Value.setBit(i);
     }
-    o << "    ";
-    emitInstBits(o, Value);
-    o << "," << '\t' << "// " << R->getName() << "\n";
+    OS << "    ";
+    emitInstBits(OS, Value);
+    OS << "," << '\t' << "// " << R->getName() << "\n";
   }
-  o << "    UINT64_C(0)\n  };\n";
+  OS << "    UINT64_C(0)\n  };\n";
 }
 
 void CodeEmitterGen::emitCaseMap(
-    raw_ostream &o,
+    raw_ostream &OS,
     const std::map<std::string, std::vector<std::string>> &CaseMap) {
   for (const auto &[Case, InstList] : CaseMap) {
     bool First = true;
     for (const auto &Inst : InstList) {
       if (!First)
-        o << "\n";
-      o << "    case " << Inst << ":";
+        OS << "\n";
+      OS << "    case " << Inst << ":";
       First = false;
     }
-    o << " {\n";
-    o << Case;
-    o << "      break;\n"
+    OS << " {\n";
+    OS << Case;
+    OS << "      break;\n"
       << "    }\n";
   }
 }
 
-void CodeEmitterGen::run(raw_ostream &o) {
-  emitSourceFileHeader("Machine Code Emitter", o);
+void CodeEmitterGen::run(raw_ostream &OS) {
+  emitSourceFileHeader("Machine Code Emitter", OS);
 
   CodeGenTarget Target(Records);
 
@@ -479,7 +479,7 @@ void CodeEmitterGen::run(raw_ostream &o) {
       Target.getInstructionsByEnumValue();
 
   if (Target.hasVariableLengthEncodings()) {
-    emitVarLenCodeEmitter(Records, o);
+    emitVarLenCodeEmitter(Records, OS);
   } else {
     const CodeGenHwModes &HWM = Target.getHwModes();
     // The set of HwModes used by instruction encodings.
@@ -509,31 +509,31 @@ void CodeEmitterGen::run(raw_ostream &o) {
 
     // Emit function declaration
     if (UseAPInt) {
-      o << "void " << Target.getName()
+      OS << "void " << Target.getName()
         << "MCCodeEmitter::getBinaryCodeForInstr(const MCInst &MI,\n"
         << "    SmallVectorImpl<MCFixup> &Fixups,\n"
         << "    APInt &Inst,\n"
         << "    APInt &Scratch,\n"
         << "    const MCSubtargetInfo &STI) const {\n";
     } else {
-      o << "uint64_t " << Target.getName();
-      o << "MCCodeEmitter::getBinaryCodeForInstr(const MCInst &MI,\n"
+      OS << "uint64_t " << Target.getName();
+      OS << "MCCodeEmitter::getBinaryCodeForInstr(const MCInst &MI,\n"
         << "    SmallVectorImpl<MCFixup> &Fixups,\n"
         << "    const MCSubtargetInfo &STI) const {\n";
     }
 
     // Emit instruction base values
-    emitInstructionBaseValues(o, NumberedInstructions, Target, DefaultMode);
+    emitInstructionBaseValues(OS, NumberedInstructions, Target, DefaultMode);
     if (!HwModes.empty()) {
       // Emit table for instrs whose encodings are controlled by HwModes.
       for (unsigned HwMode : HwModes) {
         if (HwMode == DefaultMode)
           continue;
-        emitInstructionBaseValues(o, NumberedInstructions, Target, HwMode);
+        emitInstructionBaseValues(OS, NumberedInstructions, Target, HwMode);
       }
 
       // This pointer will be assigned to the HwMode table later.
-      o << "  const uint64_t *InstBitsByHw;\n";
+      OS << "  const uint64_t *InstBitsByHw;\n";
     }
 
     // Map to accumulate all the cases.
@@ -557,7 +557,7 @@ void CodeEmitterGen::run(raw_ostream &o) {
     // Emit initial function code
     if (UseAPInt) {
       int NumWords = APInt::getNumWords(BitWidth);
-      o << "  const unsigned opcode = MI.getOpcode();\n"
+      OS << "  const unsigned opcode = MI.getOpcode();\n"
         << "  if (Scratch.getBitWidth() != " << BitWidth << ")\n"
         << "    Scratch = Scratch.zext(" << BitWidth << ");\n"
         << "  Inst = APInt(" << BitWidth << ", ArrayRef(InstBits + opcode * "
@@ -566,7 +566,7 @@ void CodeEmitterGen::run(raw_ostream &o) {
         << "  APInt &op = Scratch;\n"
         << "  switch (opcode) {\n";
     } else {
-      o << "  const unsigned opcode = MI.getOpcode();\n"
+      OS << "  const unsigned opcode = MI.getOpcode();\n"
         << "  uint64_t Value = InstBits[opcode];\n"
         << "  uint64_t op = 0;\n"
         << "  (void)op;  // suppress warning\n"
@@ -574,30 +574,30 @@ void CodeEmitterGen::run(raw_ostream &o) {
     }
 
     // Emit each case statement
-    emitCaseMap(o, CaseMap);
+    emitCaseMap(OS, CaseMap);
 
     // Default case: unhandled opcode
-    o << "  default:\n"
+    OS << "  default:\n"
       << "    std::string msg;\n"
       << "    raw_string_ostream Msg(msg);\n"
       << "    Msg << \"Not supported instr: \" << MI;\n"
       << "    report_fatal_error(Msg.str().c_str());\n"
       << "  }\n";
     if (UseAPInt)
-      o << "  Inst = Value;\n";
+      OS << "  Inst = Value;\n";
     else
-      o << "  return Value;\n";
-    o << "}\n\n";
+      OS << "  return Value;\n";
+    OS << "}\n\n";
 
-    o << "#ifdef GET_OPERAND_BIT_OFFSET\n"
+    OS << "#ifdef GET_OPERAND_BIT_OFFSET\n"
       << "#undef GET_OPERAND_BIT_OFFSET\n\n"
       << "uint32_t " << Target.getName()
       << "MCCodeEmitter::getOperandBitOffset(const MCInst &MI,\n"
       << "    unsigned OpNum,\n"
       << "    const MCSubtargetInfo &STI) const {\n"
       << "  switch (MI.getOpcode()) {\n";
-    emitCaseMap(o, BitOffsetCaseMap);
-    o << "  }\n"
+    emitCaseMap(OS, BitOffsetCaseMap);
+    OS << "  }\n"
       << "  std::string msg;\n"
       << "  raw_string_ostream Msg(msg);\n"
       << "  Msg << \"Not supported instr[opcode]: \" << MI << \"[\" << OpNum "

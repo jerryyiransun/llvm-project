@@ -174,7 +174,7 @@ public:
                            indent Indent) const;
 
   // run - Output the code emitter
-  void run(raw_ostream &o);
+  void run(raw_ostream &OS);
 
 private:
   CodeGenTarget Target;
@@ -2483,8 +2483,8 @@ handleHwModesUnrelatedEncodings(const CodeGenInstruction *Instr,
 }
 
 // Emits disassembler code for instruction decoding.
-void DecoderEmitter::run(raw_ostream &o) {
-  formatted_raw_ostream OS(o);
+void DecoderEmitter::run(raw_ostream &OS) {
+  formatted_raw_ostream OS(OS);
   OS << R"(
 #include "llvm/MC/MCInst.h"
 #include "llvm/MC/MCSubtargetInfo.h"

@@ -183,10 +183,10 @@ private:
   ///   AddRegFrm instructions to compute the operand's value.
   ///   ENCODING and TYPE describe the encoding and type for a single operand.
   ///
-  /// @param o  - The output stream to which the instruction table should be
+  /// @param OS  - The output stream to which the instruction table should be
   ///             written.
   /// @param i  - The indent level for use with the stream.
-  void emitInstructionInfo(raw_ostream &o, unsigned &i) const;
+  void emitInstructionInfo(raw_ostream &OS, unsigned &i) const;
 
   /// emitContextTable - Prints the table that is used to translate from an
   ///   instruction attribute mask to an instruction context.  This table is
@@ -200,10 +200,10 @@ private:
   ///   IC is the context corresponding to the mask 0x00, and there are 256
   ///   possible masks.
   ///
-  /// @param o  - The output stream to which the context table should be
+  /// @param OS  - The output stream to which the context table should be
   /// written.
   /// @param i  - The indent level for use with the stream.
-  void emitContextTable(raw_ostream &o, uint32_t &i) const;
+  void emitContextTable(raw_ostream &OS, uint32_t &i) const;
 
   /// emitContextDecisions - Prints all four ContextDecision structures using
   ///   emitContextDecision().
@@ -235,8 +235,8 @@ public:
 
   /// emit - Emits the instruction table, context table, and class decisions.
   ///
-  /// @param o  - The output stream to print the tables to.
-  void emit(raw_ostream &o) const;
+  /// @param OS  - The output stream to print the tables to.
+  void emit(raw_ostream &OS) const;
 
   /// setTableFields - Uses the opcode type, instruction context, opcode, and a
   ///   ModRMFilter as criteria to set a particular set of entries in the

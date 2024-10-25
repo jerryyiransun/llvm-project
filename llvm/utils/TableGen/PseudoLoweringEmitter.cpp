@@ -56,13 +56,13 @@ class PseudoLoweringEmitter {
                                 IndexedMap<OpData> &OperandMap,
                                 unsigned BaseIdx);
   void evaluateExpansion(const Record *Pseudo);
-  void emitLoweringEmitter(raw_ostream &o);
+  void emitLoweringEmitter(raw_ostream &OS);
 
 public:
   PseudoLoweringEmitter(const RecordKeeper &R) : Records(R), Target(R) {}
 
   /// run - Output the pseudo-lowerings.
-  void run(raw_ostream &o);
+  void run(raw_ostream &OS);
 };
 } // End anonymous namespace
 
@@ -220,21 +220,21 @@ void PseudoLoweringEmitter::evaluateExpansion(const Record *Rec) {
   Expansions.push_back(PseudoExpansion(SourceInsn, Insn, OperandMap));
 }
 
-void PseudoLoweringEmitter::emitLoweringEmitter(raw_ostream &o) {
+void PseudoLoweringEmitter::emitLoweringEmitter(raw_ostream &OS) {
   // Emit file header.
-  emitSourceFileHeader("Pseudo-instruction MC lowering Source Fragment", o);
+  emitSourceFileHeader("Pseudo-instruction MC lowering Source Fragment", OS);
 
-  o << "bool " << Target.getName() + "AsmPrinter::\n"
+  OS << "bool " << Target.getName() + "AsmPrinter::\n"
     << "lowerPseudoInstExpansion(const MachineInstr *MI, MCInst &Inst) {\n";
 
   if (!Expansions.empty()) {
-    o << "  Inst.clear();\n"
+    OS << "  Inst.clear();\n"
       << "  switch (MI->getOpcode()) {\n"
       << "  default: return false;\n";
     for (auto &Expansion : Expansions) {
       CodeGenInstruction &Source = Expansion.Source;
       CodeGenInstruction &Dest = Expansion.Dest;
-      o << "  case " << Source.Namespace << "::" << Source.TheDef->getName()
+      OS << "  case " << Source.Namespace << "::" << Source.TheDef->getName()
         << ": {\n"
         << "    MCOperand MCOp;\n"
         << "    Inst.setOpcode(" << Dest.Namespace
@@ -246,11 +246,11 @@ void PseudoLoweringEmitter::emitLoweringEmitter(raw_ostream &o) {
       //        expansion DAG.
       unsigned MIOpNo = 0;
       for (const auto &DestOperand : Dest.Operands) {
-        o << "    // Operand: " << DestOperand.Name << "\n";
+        OS << "    // Operand: " << DestOperand.Name << "\n";
         for (unsigned i = 0, e = DestOperand.MINumOperands; i != e; ++i) {
           switch (Expansion.OperandMap[MIOpNo + i].Kind) {
           case OpData::Operand:
-            o << "    lowerOperand(MI->getOperand("
+            OS << "    lowerOperand(MI->getOperand("
               << Source.Operands[Expansion.OperandMap[MIOpNo].Data.Operand]
                          .MIOperandNo +
                      i
@@ -258,18 +258,18 @@ void PseudoLoweringEmitter::emitLoweringEmitter(raw_ostream &o) {
               << "    Inst.addOperand(MCOp);\n";
             break;
           case OpData::Imm:
-            o << "    Inst.addOperand(MCOperand::createImm("
+            OS << "    Inst.addOperand(MCOperand::createImm("
               << Expansion.OperandMap[MIOpNo + i].Data.Imm << "));\n";
             break;
           case OpData::Reg: {
             const Record *Reg = Expansion.OperandMap[MIOpNo + i].Data.Reg;
-            o << "    Inst.addOperand(MCOperand::createReg(";
+            OS << "    Inst.addOperand(MCOperand::createReg(";
             // "zero_reg" is special.
             if (Reg->getName() == "zero_reg")
-              o << "0";
+              OS << "0";
             else
-              o << Reg->getValueAsString("Namespace") << "::" << Reg->getName();
-            o << "));\n";
+              OS << Reg->getValueAsString("Namespace") << "::" << Reg->getName();
+            OS << "));\n";
             break;
           }
           }
@@ -278,20 +278,20 @@ void PseudoLoweringEmitter::emitLoweringEmitter(raw_ostream &o) {
       }
       if (Dest.Operands.isVariadic) {
         MIOpNo = Source.Operands.size() + 1;
-        o << "    // variable_ops\n";
-        o << "    for (unsigned i = " << MIOpNo
+        OS << "    // variable_ops\n";
+        OS << "    for (unsigned i = " << MIOpNo
           << ", e = MI->getNumOperands(); i != e; ++i)\n"
           << "      if (lowerOperand(MI->getOperand(i), MCOp))\n"
           << "        Inst.addOperand(MCOp);\n";
       }
-      o << "    break;\n"
+      OS << "    break;\n"
         << "  }\n";
     }
-    o << "  }\n  return true;";
+    OS << "  }\n  return true;";
   } else
-    o << "  return false;";
+    OS << "  return false;";
 
-  o << "\n}\n\n";
+  OS << "\n}\n\n";
 }
 
 void PseudoLoweringEmitter::run(raw_ostream &OS) {

@@ -856,11 +856,11 @@ void DisassemblerTables::emitContextDecision(raw_ostream &o1, raw_ostream &o2,
                 << "\n";
 }
 
-void DisassemblerTables::emitInstructionInfo(raw_ostream &o,
+void DisassemblerTables::emitInstructionInfo(raw_ostream &OS,
                                              unsigned &i) const {
   unsigned NumInstructions = InstructionSpecifiers.size();
 
-  o << "static const struct OperandSpecifier x86OperandSets[]["
+  OS << "static const struct OperandSpecifier x86OperandSets[]["
     << X86_MAX_OPERANDS << "] = {\n";
 
   typedef SmallVector<std::pair<OperandEncoding, OperandType>, X86_MAX_OPERANDS>
@@ -882,24 +882,24 @@ void DisassemblerTables::emitInstructionInfo(raw_ostream &o,
 
     N = ++OperandSetNum;
 
-    o << "  { /* " << (OperandSetNum - 1) << " */\n";
+    OS << "  { /* " << (OperandSetNum - 1) << " */\n";
     for (unsigned i = 0, e = OperandList.size(); i != e; ++i) {
       const char *Encoding = stringForOperandEncoding(OperandList[i].first);
       const char *Type = stringForOperandType(OperandList[i].second);
-      o << "    { " << Encoding << ", " << Type << " },\n";
+      OS << "    { " << Encoding << ", " << Type << " },\n";
     }
-    o << "  },\n";
+    OS << "  },\n";
   }
-  o << "};"
+  OS << "};"
     << "\n\n";
 
-  o.indent(i * 2) << "static const struct InstructionSpecifier ";
-  o << INSTRUCTIONS_STR "[" << InstructionSpecifiers.size() << "] = {\n";
+  OS.indent(i * 2) << "static const struct InstructionSpecifier ";
+  OS << INSTRUCTIONS_STR "[" << InstructionSpecifiers.size() << "] = {\n";
 
   i++;
 
   for (unsigned index = 0; index < NumInstructions; ++index) {
-    o.indent(i * 2) << "{ /* " << index << " */\n";
+    OS.indent(i * 2) << "{ /* " << index << " */\n";
     i++;
 
     OperandListTy OperandList;
@@ -908,141 +908,141 @@ void DisassemblerTables::emitInstructionInfo(raw_ostream &o,
       OperandType Type = (OperandType)Operand.type;
       OperandList.push_back(std::pair(Encoding, Type));
     }
-    o.indent(i * 2) << (OperandSets[OperandList] - 1) << ",\n";
+    OS.indent(i * 2) << (OperandSets[OperandList] - 1) << ",\n";
 
-    o.indent(i * 2) << "/* " << InstructionSpecifiers[index].name << " */\n";
+    OS.indent(i * 2) << "/* " << InstructionSpecifiers[index].name << " */\n";
 
     i--;
-    o.indent(i * 2) << "},\n";
+    OS.indent(i * 2) << "},\n";
   }
 
   i--;
-  o.indent(i * 2) << "};"
+  OS.indent(i * 2) << "};"
                   << "\n";
 }
 
-void DisassemblerTables::emitContextTable(raw_ostream &o, unsigned &i) const {
-  o.indent(i * 2) << "static const uint8_t " CONTEXTS_STR "[" << ATTR_max
+void DisassemblerTables::emitContextTable(raw_ostream &OS, unsigned &i) const {
+  OS.indent(i * 2) << "static const uint8_t " CONTEXTS_STR "[" << ATTR_max
                   << "] = {\n";
   i++;
 
   for (unsigned index = 0; index < ATTR_max; ++index) {
-    o.indent(i * 2);
+    OS.indent(i * 2);
 
     if ((index & ATTR_EVEX) && (index & ATTR_ADSIZE) && (index & ATTR_OPSIZE))
-      o << "IC_EVEX_OPSIZE_ADSIZE";
+      OS << "IC_EVEX_OPSIZE_ADSIZE";
     else if ((index & ATTR_EVEX) && (index & ATTR_ADSIZE) && (index & ATTR_XD))
-      o << "IC_EVEX_XD_ADSIZE";
+      OS << "IC_EVEX_XD_ADSIZE";
     else if ((index & ATTR_EVEX) && (index & ATTR_ADSIZE) && (index & ATTR_XS))
-      o << "IC_EVEX_XS_ADSIZE";
+      OS << "IC_EVEX_XS_ADSIZE";
     else if (index & ATTR_EVEXNF) {
-      o << "IC_EVEX";
+      OS << "IC_EVEX";
       if (index & ATTR_REXW)
-        o << "_W";
+        OS << "_W";
       else if (index & ATTR_OPSIZE)
-        o << "_OPSIZE";
+        OS << "_OPSIZE";
 
       if (index & ATTR_EVEXB)
-        o << "_B";
+        OS << "_B";
 
-      o << "_NF";
+      OS << "_NF";
     } else if ((index & ATTR_EVEX) || (index & ATTR_VEX) ||
                (index & ATTR_VEXL)) {
       if (index & ATTR_EVEX)
-        o << "IC_EVEX";
+        OS << "IC_EVEX";
       else
-        o << "IC_VEX";
+        OS << "IC_VEX";
 
       if ((index & ATTR_EVEXB) && (index & ATTR_EVEXU))
         ; // Ignore ATTR_VEXL and ATTR_EVEXL2 under YMM rounding.
       else if ((index & ATTR_EVEX) && (index & ATTR_EVEXL2))
-        o << "_L2";
+        OS << "_L2";
       else if (index & ATTR_VEXL)
-        o << "_L";
+        OS << "_L";
 
       if (index & ATTR_REXW)
-        o << "_W";
+        OS << "_W";
 
       if (index & ATTR_OPSIZE)
-        o << "_OPSIZE";
+        OS << "_OPSIZE";
       else if (index & ATTR_XD)
-        o << "_XD";
+        OS << "_XD";
       else if (index & ATTR_XS)
-        o << "_XS";
+        OS << "_XS";
 
       if (index & ATTR_EVEX) {
         if (index & ATTR_EVEXKZ)
-          o << "_KZ";
+          OS << "_KZ";
         else if (index & ATTR_EVEXK)
-          o << "_K";
+          OS << "_K";
 
         if (index & ATTR_EVEXB)
-          o << "_B";
+          OS << "_B";
 
         if ((index & ATTR_EVEXB) && (index & ATTR_EVEXU))
-          o << "_U";
+          OS << "_U";
       }
     } else if ((index & ATTR_64BIT) && (index & ATTR_REX2))
-      o << "IC_64BIT_REX2";
+      OS << "IC_64BIT_REX2";
     else if ((index & ATTR_64BIT) && (index & ATTR_REXW) && (index & ATTR_XS))
-      o << "IC_64BIT_REXW_XS";
+      OS << "IC_64BIT_REXW_XS";
     else if ((index & ATTR_64BIT) && (index & ATTR_REXW) && (index & ATTR_XD))
-      o << "IC_64BIT_REXW_XD";
+      OS << "IC_64BIT_REXW_XD";
     else if ((index & ATTR_64BIT) && (index & ATTR_REXW) &&
              (index & ATTR_OPSIZE))
-      o << "IC_64BIT_REXW_OPSIZE";
+      OS << "IC_64BIT_REXW_OPSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_REXW) &&
              (index & ATTR_ADSIZE))
-      o << "IC_64BIT_REXW_ADSIZE";
+      OS << "IC_64BIT_REXW_ADSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_XD) && (index & ATTR_OPSIZE))
-      o << "IC_64BIT_XD_OPSIZE";
+      OS << "IC_64BIT_XD_OPSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_XD) && (index & ATTR_ADSIZE))
-      o << "IC_64BIT_XD_ADSIZE";
+      OS << "IC_64BIT_XD_ADSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_XS) && (index & ATTR_OPSIZE))
-      o << "IC_64BIT_XS_OPSIZE";
+      OS << "IC_64BIT_XS_OPSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_XS) && (index & ATTR_ADSIZE))
-      o << "IC_64BIT_XS_ADSIZE";
+      OS << "IC_64BIT_XS_ADSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_XS))
-      o << "IC_64BIT_XS";
+      OS << "IC_64BIT_XS";
     else if ((index & ATTR_64BIT) && (index & ATTR_XD))
-      o << "IC_64BIT_XD";
+      OS << "IC_64BIT_XD";
     else if ((index & ATTR_64BIT) && (index & ATTR_OPSIZE) &&
              (index & ATTR_ADSIZE))
-      o << "IC_64BIT_OPSIZE_ADSIZE";
+      OS << "IC_64BIT_OPSIZE_ADSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_OPSIZE))
-      o << "IC_64BIT_OPSIZE";
+      OS << "IC_64BIT_OPSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_ADSIZE))
-      o << "IC_64BIT_ADSIZE";
+      OS << "IC_64BIT_ADSIZE";
     else if ((index & ATTR_64BIT) && (index & ATTR_REXW))
-      o << "IC_64BIT_REXW";
+      OS << "IC_64BIT_REXW";
     else if ((index & ATTR_64BIT))
-      o << "IC_64BIT";
+      OS << "IC_64BIT";
     else if ((index & ATTR_XS) && (index & ATTR_OPSIZE))
-      o << "IC_XS_OPSIZE";
+      OS << "IC_XS_OPSIZE";
     else if ((index & ATTR_XD) && (index & ATTR_OPSIZE))
-      o << "IC_XD_OPSIZE";
+      OS << "IC_XD_OPSIZE";
     else if ((index & ATTR_XS) && (index & ATTR_ADSIZE))
-      o << "IC_XS_ADSIZE";
+      OS << "IC_XS_ADSIZE";
     else if ((index & ATTR_XD) && (index & ATTR_ADSIZE))
-      o << "IC_XD_ADSIZE";
+      OS << "IC_XD_ADSIZE";
     else if (index & ATTR_XS)
-      o << "IC_XS";
+      OS << "IC_XS";
     else if (index & ATTR_XD)
-      o << "IC_XD";
+      OS << "IC_XD";
     else if ((index & ATTR_OPSIZE) && (index & ATTR_ADSIZE))
-      o << "IC_OPSIZE_ADSIZE";
+      OS << "IC_OPSIZE_ADSIZE";
     else if (index & ATTR_OPSIZE)
-      o << "IC_OPSIZE";
+      OS << "IC_OPSIZE";
     else if (index & ATTR_ADSIZE)
-      o << "IC_ADSIZE";
+      OS << "IC_ADSIZE";
     else
-      o << "IC";
+      OS << "IC";
 
-    o << ", // " << index << "\n";
+    OS << ", // " << index << "\n";
   }
 
   i--;
-  o.indent(i * 2) << "};"
+  OS.indent(i * 2) << "};"
                   << "\n";
 }
 
@@ -1066,7 +1066,7 @@ void DisassemblerTables::emitContextDecisions(raw_ostream &o1, raw_ostream &o2,
   emitContextDecision(o1, o2, i1, i2, ModRMTableNum, *Tables[11], MAP7_STR);
 }
 
-void DisassemblerTables::emit(raw_ostream &o) const {
+void DisassemblerTables::emit(raw_ostream &OS) const {
   unsigned i1 = 0;
   unsigned i2 = 0;
 
@@ -1076,15 +1076,15 @@ void DisassemblerTables::emit(raw_ostream &o) const {
   raw_string_ostream o1(s1);
   raw_string_ostream o2(s2);
 
-  emitInstructionInfo(o, i2);
-  o << "\n";
+  emitInstructionInfo(OS, i2);
+  OS << "\n";
 
-  emitContextTable(o, i2);
-  o << "\n";
+  emitContextTable(OS, i2);
+  OS << "\n";
 
   unsigned ModRMTableNum = 0;
 
-  o << "static const InstrUID modRMTable[] = {\n";
+  OS << "static const InstrUID modRMTable[] = {\n";
   i1++;
   std::vector<unsigned> EmptyTable(1, 0);
   ModRMTable[EmptyTable] = ModRMTableNum;
@@ -1094,13 +1094,13 @@ void DisassemblerTables::emit(raw_ostream &o) const {
   i1--;
   emitContextDecisions(o1, o2, i1, i2, ModRMTableNum);
 
-  o << s1;
-  o << "  0x0\n";
-  o << "};\n";
-  o << "\n";
-  o << s2;
-  o << "\n";
-  o << "\n";
+  OS << s1;
+  OS << "  0x0\n";
+  OS << "};\n";
+  OS << "\n";
+  OS << s2;
+  OS << "\n";
+  OS << "\n";
 }
 
 void DisassemblerTables::setTableFields(ModRMDecision &decision,

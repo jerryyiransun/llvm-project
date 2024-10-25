@@ -148,7 +148,7 @@ class AsmMatcherEmitter {
 public:
   AsmMatcherEmitter(const RecordKeeper &R) : Records(R) {}
 
-  void run(raw_ostream &o);
+  void run(raw_ostream &OS);
 };
 
 /// ClassInfo - Helper class for storing the information about a particular
