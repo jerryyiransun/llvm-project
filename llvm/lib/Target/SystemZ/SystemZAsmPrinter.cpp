@@ -362,6 +362,18 @@ void SystemZAsmPrinter::emitInstruction(const MachineInstr *MI) {
 
     return;
   }
+  case SystemZ::CKSMLoop: {
+    MCSymbol *DotSym = OutContext.createTempSymbol();
+    OutStreamer->emitLabel(DotSym);
+    EmitToStreamer(*OutStreamer, MCInstBuilder(SystemZ::CKSM))
+                                    .addReg(MI->getOperand(1).getReg()
+                                    .addReg(MI->getOperand(2).getReg()));
+    // Emit jo to label
+    LoweredMI = MCInstBuilder(SystemZ::BRC)
+                    .addImm(MI->getOperand(0).getImm())
+                    .addImm(MI->getOperand(1).getImm())
+                    .addExpr(MCSymbolRefExpr::create(DotSym, Outcontext));
+  } break;
   case SystemZ::CallBRASL:
     LoweredMI = MCInstBuilder(SystemZ::BRASL)
       .addReg(SystemZ::R14D)

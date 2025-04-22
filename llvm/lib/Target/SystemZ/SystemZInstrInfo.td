@@ -2103,7 +2103,14 @@ let mayLoad = 1, mayStore = 1, Defs = [CC, R0D, R1D, R2D, R3D, R5D],
 
 // Checksum.
 let mayLoad = 1, Defs = [CC] in
-  def CKSM : SideEffectBinaryMemMemRRE<"cksm", 0xB241, GR64, GR128>;
+  def CKSM : SideEffectBinaryMemMemRRE<"cksm", 0xB241, GR32, GR128>;
+
+let usesCustomInserter = 1, mayLoad = 1, hasNoSchedulingInfo = 1, Defs = [CC] in
+  def CKSMLoop : Pseudo<(outs GR32:$cksmout),
+                        (ins GR32:cksmin, GR128:$ptr_len)>;
+  // Look for intrinsic and replace with pseudo instruction
+  def Pat<(int_s390_cksm GR32:$cksmin, ADDR64:$ptr, GR64:$len),
+          (CKSMLoop GR32:$cksmin, PAIR128(ADDR64:$ptr, GR64:$len))>
 
 // Compression call.
 let mayLoad = 1, mayStore = 1, Defs = [CC, R1D], Uses = [R0L, R1D] in
