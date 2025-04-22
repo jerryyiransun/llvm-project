@@ -237,6 +237,11 @@ def SDT_ZVecQuaternaryIntCC : SDTypeProfile<2, 4,
 def SDT_ZTest               : SDTypeProfile<1, 2,
                                             [SDTCisVT<0, i32>,
                                              SDTCisVT<2, i64>]>;
+def SDT_ZCKSM               : SDTypeProfile<1, 3,
+                                            [SDTCisInt<0>,
+                                             SDTCisInt<1>,
+                                             SDTCisPtrTy<2>,
+                                             SDTCisInt<3>]>;
 
 //===----------------------------------------------------------------------===//
 // Node definitions
@@ -313,6 +318,9 @@ def z_stckf            : SDNode<"SystemZISD::STCKF", SDT_ZStoreInherent,
                                 [SDNPHasChain, SDNPMayStore, SDNPMemOperand]>;
 
 def z_tdc               : SDNode<"SystemZISD::TDC", SDT_ZTest>;
+
+def z_cksm              : SDNode<"SystemZISD::CKSM", SDT_ZCKSM,
+                                 [SDNPHasChain, SDNMayLoad]>
 
 // Defined because the index is an i32 rather than a pointer.
 def z_vector_insert     : SDNode<"ISD::INSERT_VECTOR_ELT",

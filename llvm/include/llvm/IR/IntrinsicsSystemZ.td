@@ -462,3 +462,9 @@ let TargetPrefix = "s390" in {
   def int_s390_tdc : Intrinsic<[llvm_i32_ty], [llvm_anyfloat_ty, llvm_i64_ty],
                                [IntrNoMem]>;
 }
+
+let TargetPrefix = "s390" in {
+  def int_s390_cksm : Intrinsic<[llvm_i32_ty, llvm_ptr_ty, llvm_i64_ty],
+                                [llvm_i32_ty],
+                                [IntrReadMem]>;
+}

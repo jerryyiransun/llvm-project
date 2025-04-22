@@ -295,6 +295,14 @@ enum NodeType : unsigned {
   // Operand 1: the bit mask
   TDC,
 
+  // CheckSum Class
+  //
+  // Operand 0: output checksum 
+  // Operand 1: input checksum
+  // Operand 2: memory of buffer
+  // Operand 3: length
+  CKSM,
+
   // z/OS XPLINK ADA Entry
   // Wraps a TargetGlobalAddress that should be loaded from a function's
   // AssociatedData Area (ADA). Tha ADA is passed to the function by the
